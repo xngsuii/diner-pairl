@@ -6,7 +6,7 @@
   --e-cream: #F6F2E6;
   --e-mint: #0E857F;
   --e-ink: #2A1A17;
-  --e-line: #5A3A2C;  /* 편집기 선·체커·상단바 공통 브라운 */
+  --e-line: #2A1A17;  /* 편집기 선·체커·상단바 공통 색 */
   --e-paper: #FFFDF7;
   --e-muted: #7a6a60;
   --e-ui: 'Gowun Dodum', system-ui, sans-serif;
@@ -201,8 +201,9 @@ input[type="range"] { width: 100%; accent-color: var(--e-mint); }
 .tabs {
   display: flex;
   border-bottom: 4px solid var(--e-line);
-  background: repeating-conic-gradient(var(--e-line) 0 25%, var(--e-cream) 0 50%) 0 100% / 8px 8px;
-  padding-top: 8px;
+  align-items: flex-end;
+  height: 49px;              /* 테두리 4px + 체커 15px × 3줄 */
+  background: repeating-conic-gradient(var(--e-line) 0 25%, var(--e-cream) 0 50%) 0 100% / 30px 30px;
   gap: 4px;
   padding-left: 12px;
 }
