@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pair Diner — 페어 메뉴판 편집기</title>
+
+  <!--
+    폰트 교체: 아래 링크의 family 목록과 css/board.css 상단의 --f-* 변수만 바꾸면 됩니다.
+    (id="gfonts"는 이미지 내보내기 시 폰트 임베드에 사용되니 지우지 마세요.)
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link id="gfonts" rel="stylesheet" crossorigin="anonymous"
+        href="https://fonts.googleapis.com/css2?family=Anton&family=Black+Han+Sans&family=Bungee&family=Do+Hyeon&family=Gowun+Dodum&family=Nanum+Pen+Script&family=Yellowtail&display=swap">
+
+  <link rel="stylesheet" href="css/board.css">
+  <link rel="stylesheet" href="css/editor.css">
+</head>
+<body>
+  <div class="app">
+    <!-- ───────── 프리뷰 ───────── -->
+    <section class="stage">
+      <div class="stage-bar">
+        <div class="seg" id="orientSeg" role="group" aria-label="방향">
+          <button type="button" data-orient="portrait">세로</button>
+          <button type="button" data-orient="landscape">가로</button>
+        </div>
+        <label class="zoom">
+          <span>보기</span>
+          <select id="zoomSel">
+            <option value="fit">화면 맞춤</option>
+            <option value="0.5">50%</option>
+            <option value="0.75">75%</option>
+            <option value="1">100%</option>
+          </select>
+        </label>
+        <span class="stage-info" id="stageInfo"></span>
+        <span class="stage-hint">카드·카테고리 제목을 끌어서 순서 변경 / 클릭해서 편집</span>
+      </div>
+      <div class="stage-scroll" id="stageScroll">
+        <div class="scale-box" id="scaleBox">
+          <div class="scaler" id="scaler">
+            <div class="board portrait" id="board"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── 편집기 ───────── -->
+    <aside class="panel">
+      <header class="panel-head">
+        <div class="logo"><span>PAIR</span> DINER <small>menu maker</small></div>
+        <div class="export">
+          <select id="exFmt" aria-label="파일 형식">
+            <option value="png">PNG</option>
+            <option value="jpeg">JPEG</option>
+            <option value="webp">WEBP</option>
+          </select>
+          <select id="exScale" aria-label="배율">
+            <option value="1">1x</option>
+            <option value="2" selected>2x</option>
+          </select>
+          <button type="button" class="btn btn-mint" id="exBtn">다운로드</button>
+        </div>
+      </header>
+
+      <nav class="tabs" role="tablist">
+        <button type="button" data-tab="menu" class="is-active">메뉴</button>
+        <button type="button" data-tab="style">꾸미기</button>
+        <button type="button" data-tab="data">저장</button>
+      </nav>
+
+      <div class="tab-body">
+        <div class="tab-pane is-active" data-pane="menu" id="menuView"></div>
+        <div class="tab-pane" data-pane="style" id="styleView"></div>
+        <div class="tab-pane" data-pane="data" id="dataView">
+          <section class="box">
+            <h3>자동 저장</h3>
+            <p class="muted">작업 내용은 이 브라우저(IndexedDB)에 자동 저장돼요. 다른 기기·브라우저로 옮기거나 백업하려면 프로젝트 파일로 저장하세요.</p>
+            <p class="muted" id="saveState">—</p>
+          </section>
+          <section class="box">
+            <h3>프로젝트 파일</h3>
+            <div class="row">
+              <button type="button" class="btn btn-mint" id="jsonSave">.json 저장</button>
+              <label class="btn btn-ghost">
+                .json 불러오기
+                <input type="file" accept="application/json,.json" id="jsonLoad" hidden>
+              </label>
+            </div>
+          </section>
+          <section class="box">
+            <h3>초기화</h3>
+            <p class="muted">모든 카테고리와 카드를 지우고 예시 상태로 되돌립니다.</p>
+            <button type="button" class="btn btn-red" id="resetAll">새로 시작</button>
+          </section>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
