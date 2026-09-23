@@ -10,12 +10,16 @@
   --e-muted: #7a6a60;
   --e-ui: 'Gowun Dodum', system-ui, sans-serif;
   --e-head: 'Do Hyeon', 'Gowun Dodum', sans-serif;
+  --e-win-shadow: 0 1px 2px rgba(42, 26, 23, .08), 0 12px 32px rgba(42, 26, 23, .14);
+  --e-win-border: 1px solid rgba(42, 26, 23, .12);
 }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body {
-  background: #E6DDC8;
+  background:
+    radial-gradient(rgba(186, 43, 49, .07) 1.2px, transparent 1.6px) 0 0 / 18px 18px,
+    #ECE5D4;
   color: var(--e-ink);
   font-family: var(--e-ui);
   font-size: 14px;
@@ -24,8 +28,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .app {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 440px;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 18px;
   height: 100vh;
+  padding: 18px;
 }
 
 /* ───────── 프리뷰 영역 ───────── */
@@ -34,7 +40,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  background: repeating-conic-gradient(#DED3BB 0 25%, #E8E0CC 0 50%) 0 0 / 36px 36px;
+  overflow: hidden;
+  border: var(--e-win-border);
+  border-radius: 22px;
+  box-shadow: var(--e-win-shadow);
+  background: repeating-conic-gradient(#E4DBC6 0 25%, #EBE4D3 0 50%) 0 0 / 32px 32px;
 }
 .stage-bar {
   display: flex;
@@ -62,7 +72,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
   overflow: auto;
   padding: 32px;
 }
-.scale-box { position: relative; margin: 0 auto; }
+.scale-box {
+  position: relative;
+  margin: 0 auto;
+  /* 메뉴판과 배경을 구분하는 그림자 (이미지에는 포함되지 않음) */
+  box-shadow: 0 2px 6px rgba(42, 26, 23, .18), 0 18px 48px rgba(42, 26, 23, .3);
+}
 .scaler { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
 
 /* ───────── 공통 컨트롤 ───────── */
@@ -141,8 +156,11 @@ input[type="range"] { width: 100%; accent-color: var(--e-mint); }
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
   background: var(--e-cream);
-  border-left: 4px solid var(--e-ink);
+  border: var(--e-win-border);
+  border-radius: 22px;
+  box-shadow: var(--e-win-shadow);
 }
 .panel-head {
   display: flex;
@@ -152,7 +170,6 @@ input[type="range"] { width: 100%; accent-color: var(--e-mint); }
   gap: 10px;
   padding: 12px 16px;
   background: var(--e-red);
-  border-bottom: 4px solid var(--e-ink);
   color: var(--e-cream);
 }
 .logo {
@@ -318,7 +335,13 @@ input[type="range"] { width: 100%; accent-color: var(--e-mint); }
 .ed-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ed-card-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--e-head); font-size: 15px; }
 .ed-card-price { color: var(--e-mint); font-family: 'Bungee', sans-serif; font-size: 12px; }
-.ed-ghost { opacity: .4; }
+/* 드래그 중 원래 자리: 점선 자리표시 (끌고 가는 복제본은 불투명) */
+.ed-ghost {
+  background: transparent !important;
+  border-style: dashed !important;
+  box-shadow: none !important;
+}
+.ed-ghost > * { visibility: hidden; }
 .ed-empty { padding: 30px 10px; text-align: center; color: var(--e-muted); }
 
 /* ───────── 카드 편집 폼 ───────── */
@@ -395,12 +418,29 @@ input[type="range"] { width: 100%; accent-color: var(--e-mint); }
 }
 .toast.is-on { opacity: 1; transform: translate(-50%, 0); }
 
+/* ───────── 꾸미기: 헤더 장식 ───────── */
+.box-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.box-head h3 { margin: 0; }
+.btn-sm { padding: 3px 10px; font-size: 13px; border-width: 2px; box-shadow: 2px 2px 0 var(--e-ink); }
+.deco {
+  margin-top: 12px;
+  padding: 10px 12px 4px;
+  background: var(--e-cream);
+  border: 2px solid #d8ccb4;
+  border-radius: 10px;
+}
+.deco-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-family: var(--e-head); font-size: 15px; }
+.deco-head b { font-weight: 400; }
+.deco-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; margin-top: 10px; }
+.deco-grid .field { margin-bottom: 8px; }
+.deco-grid label { font-size: 13px; }
+
 /* ───────── 좁은 화면 ───────── */
 @media (max-width: 960px) {
-  .app { grid-template-columns: 1fr; height: auto; }
+  .app { grid-template-columns: 1fr; height: auto; padding: 10px; gap: 12px; }
   .stage { height: 65vh; }
   .stage-scroll { padding: 16px; }
   .stage-hint { display: none; }
-  .panel { border-left: 0; border-top: 4px solid var(--e-ink); }
+
   .tab-body { overflow: visible; }
 }

@@ -61,11 +61,20 @@
   /* ================= 상태 ================= */
   const DEFAULT_COLORS = { red: '#BA2B31', cream: '#F6F2E6', mint: '#0E857F', ink: '#2A1A17', accent: '#E9A23B' };
   const COLOR_LABELS = { red: '레드', cream: '배경', mint: '민트', ink: '잉크', accent: '포인트' };
-  const SHADOWS = [['red', '레드'], ['mint', '민트'], ['accent', '포인트'], ['none', '없음']];
+  const THEMES = [['red', '레드'], ['mint', '민트']];
+
+  /** 헤더 장식 기본값 (x, y: 기본 위치에서 이동한 px / scale: % / rot: 도) */
+  const DECO_DEFAULTS = {
+    subtitle: { x: 0, y: 0, scale: 100, rot: 0 },
+    stamp:    { x: 0, y: 0, scale: 100, rot: 12 },
+    sticker:  { x: 0, y: 0, scale: 100, rot: -14 },
+  };
+  const DECO_LABELS = { subtitle: '서브타이틀 리본', stamp: '원형 도장', sticker: '별 스티커' };
+  const decoTransform = (d) => `translate(${d.x}px, ${d.y}px) rotate(${d.rot}deg) scale(${d.scale / 100})`;
 
   const newCard = (o = {}) => ({
     id: uid(), name: '', desc: '', price: '', keywords: ['', '', ''],
-    image: '', posX: 50, posY: 50, zoom: 1, shadow: 'red', ...o,
+    image: '', posX: 50, posY: 50, zoom: 1, theme: 'red', ...o,
   });
 
   function defaultState() {
@@ -87,6 +96,7 @@
         showNumbers: true,
         grain: true,
         grainAmount: 35,
+        deco: clone(DECO_DEFAULTS),
         colors: { ...DEFAULT_COLORS },
       },
       categories: [
@@ -94,14 +104,14 @@
           id: uid(), name: 'Main Pairs', tagline: "Chef's special!",
           cards: [
             newCard({ name: '캐릭터A × 캐릭터B', desc: '여기에 페어 설명을 적어주세요.\n줄바꿈도 가능해요.', price: '3.18', keywords: ['소꿉친구', '쌍방', '혐관'] }),
-            newCard({ name: '캐릭터C × 캐릭터D', desc: '카드를 클릭하면 오른쪽에서 편집할 수 있어요.', price: '12.25', keywords: ['선후배', '구원', ''], shadow: 'mint' }),
+            newCard({ name: '캐릭터C × 캐릭터D', desc: '카드를 클릭하면 오른쪽에서 편집할 수 있어요.', price: '12.25', keywords: ['선후배', '구원', ''], theme: 'mint' }),
           ],
         },
         {
           id: uid(), name: 'Side Pairs', tagline: '곁들이면 더 맛있는 사이드 메뉴',
           cards: [
             newCard({ name: '캐릭터E × 캐릭터F', desc: '가격(성사일)은 비워 두면 표시되지 않아요.', keywords: ['동거', '', ''] }),
-            newCard({ name: '캐릭터G × 캐릭터H', desc: '카드를 끌어서 순서나 카테고리를 바꿔 보세요.', price: '7.7', keywords: ['계약연애', '', ''], shadow: 'mint' }),
+            newCard({ name: '캐릭터G × 캐릭터H', desc: '카드를 끌어서 순서나 카테고리를 바꿔 보세요.', price: '7.7', keywords: ['계약연애', '', ''], theme: 'mint' }),
           ],
         },
       ],
@@ -117,12 +127,16 @@
       landscape: { ...d.settings.layout.landscape, ...(raw.settings?.layout?.landscape || {}) },
     };
     s.colors = { ...DEFAULT_COLORS, ...(raw.settings?.colors || {}) };
+    s.deco = Object.fromEntries(Object.keys(DECO_DEFAULTS).map((k) =>
+      [k, { ...DECO_DEFAULTS[k], ...(raw.settings?.deco?.[k] || {}) }]));
     const categories = (Array.isArray(raw.categories) ? raw.categories : []).map((c) => ({
       id: c.id || uid(),
       name: c.name ?? '',
       tagline: c.tagline ?? '',
       cards: (Array.isArray(c.cards) ? c.cards : []).map((k) => {
         const card = newCard({ ...k, id: k.id || uid() });
+        card.theme = k.theme || (k.shadow === 'mint' ? 'mint' : 'red');
+        delete card.shadow;
         card.keywords = [0, 1, 2].map((i) => (k.keywords || [])[i] || '');
         return card;
       }),
@@ -207,11 +221,9 @@
     const kws = (card.keywords || []).map((k) => k.trim()).filter(Boolean).slice(0, 3);
     const imgStyle = `object-position:${card.posX}% ${card.posY}%;` +
       (card.zoom > 1 ? `transform:scale(${card.zoom});transform-origin:${card.posX}% ${card.posY}%;` : '');
-    const sh = SHADOWS.some(([k]) => k === card.shadow) ? card.shadow : 'red';
-    const shClass = sh === 'none' ? ' no-shadow' : ` cs-${sh}`;
-    const shStyle = sh === 'none' ? '' : ` style="--cs:var(--${sh})"`;
+    const theme = card.theme === 'mint' ? 'mint' : 'red';
     return `
-      <article class="b-card${shClass}${card.id === selectedId ? ' is-selected' : ''}" data-id="${card.id}"${shStyle}>
+      <article class="b-card th-${theme}${card.id === selectedId ? ' is-selected' : ''}" data-id="${card.id}">
         ${s.showNumbers ? `<div class="b-no"><span>No.<br>${String(n).padStart(2, '0')}</span></div>` : ''}
         <div class="b-card-img">
           ${card.image ? `<img src="${card.image}" alt="" draggable="false" style="${imgStyle}">` : '<div class="b-noimg">NO IMAGE</div>'}
@@ -243,10 +255,10 @@
     board.innerHTML = `
       <div class="b-inner">
         <header class="b-header">
-          ${s.sticker ? `<div class="b-burst"><span>${nl(s.sticker)}</span></div>` : ''}
-          ${s.stamp ? `<div class="b-stamp"><span>${nl(s.stamp)}</span></div>` : ''}
+          ${s.sticker ? `<div class="b-burst" data-deco="sticker" style="transform:${decoTransform(s.deco.sticker)}"><span>${nl(s.sticker)}</span></div>` : ''}
+          ${s.stamp ? `<div class="b-stamp" data-deco="stamp" style="transform:${decoTransform(s.deco.stamp)}"><span>${nl(s.stamp)}</span></div>` : ''}
           <div class="b-plate"><h1 class="b-title">${nl(s.title) || '&nbsp;'}</h1></div>
-          ${s.subtitle ? `<div><div class="b-ribbon"><span>${esc(s.subtitle)}</span></div></div>` : ''}
+          ${s.subtitle ? `<div><div class="b-ribbon" data-deco="subtitle" style="transform:${decoTransform(s.deco.subtitle)}"><span>${esc(s.subtitle)}</span></div></div>` : ''}
         </header>
         <div class="b-strip"></div>
         <main class="b-cats">
@@ -270,8 +282,28 @@
     fit();
   }
 
+  /* 브라우저 기본 드래그 이미지(반투명) 대신 Sortable이 만든 복제본을 불투명하게 띄움 */
+  const DRAG_OPTS = { animation: 160, forceFallback: true, fallbackTolerance: 4, dragClass: 'is-drag-clone' };
+
+  /* 프리뷰는 scale()로 축소돼 있어서 복제본 이동량도 같이 줄어듦 → 보기 배율만큼 보정 */
+  const dragStart = { x: 0, y: 0 };
+  board.addEventListener('pointerdown', (e) => { dragStart.x = e.clientX; dragStart.y = e.clientY; }, true);
+  function fixCloneOffset(e) {
+    const g = $('.is-drag-clone', board);
+    if (!g || viewScale === 1) return;
+    const p = e.touches ? e.touches[0] : e;
+    const dx = (p.clientX - dragStart.x) / viewScale;
+    const dy = (p.clientY - dragStart.y) / viewScale;
+    g.style.transform = `matrix(1,0,0,1,${dx},${dy})`;
+  }
+  const MOVE_EVENTS = ['pointermove', 'mousemove', 'touchmove'];
+  const boardDragHooks = {
+    onStart() { MOVE_EVENTS.forEach((t) => document.addEventListener(t, fixCloneOffset)); },
+    onUnchoose() { MOVE_EVENTS.forEach((t) => document.removeEventListener(t, fixCloneOffset)); },
+  };
+
   function bindBoardSortable() {
-    const opts = { animation: 160, ghostClass: 'b-ghost', onEnd: syncFromBoard };
+    const opts = { ...DRAG_OPTS, ...boardDragHooks, ghostClass: 'b-ghost', onEnd: syncFromBoard };
     $$('.b-grid', board).forEach((g) =>
       Sortable.create(g, { ...opts, group: 'board-cards', draggable: '.b-card' }));
     const cats = $('.b-cats', board);
@@ -289,12 +321,16 @@
     changed({ editor: true });
   }
 
+  let viewScale = 1;
   function fit() {
     const bw = board.offsetWidth;
     const bh = board.offsetHeight;
     const z = $('#zoomSel').value;
-    const avail = stageScroll.clientWidth - parseFloat(getComputedStyle(stageScroll).paddingLeft) * 2;
-    const s = z === 'fit' ? Math.min(1, avail / bw) : +z;
+    const pad = parseFloat(getComputedStyle(stageScroll).paddingLeft) * 2;
+    const availW = stageScroll.clientWidth - pad;
+    const availH = stageScroll.clientHeight - pad;
+    const s = z === 'fit' ? Math.min(1, availW / bw, availH / bh) : +z;
+    viewScale = s;
     scaler.style.transform = `scale(${s})`;
     scaleBox.style.width = `${bw * s}px`;
     scaleBox.style.height = `${bh * s}px`;
@@ -303,6 +339,33 @@
   new ResizeObserver(fit).observe(stageScroll);
   new ResizeObserver(fit).observe(board);
   $('#zoomSel').addEventListener('change', fit);
+
+  /* 헤더 장식(리본·도장·스티커)을 프리뷰에서 직접 끌어서 이동 */
+  board.addEventListener('pointerdown', (e) => {
+    const el = e.target.closest('[data-deco]');
+    if (!el || e.button !== 0) return;
+    e.preventDefault();
+    const k = el.dataset.deco;
+    const d = state.settings.deco[k];
+    const start = { x: e.clientX, y: e.clientY, ox: d.x, oy: d.y };
+    el.classList.add('is-moving');
+    const move = (ev) => {
+      d.x = Math.round(start.ox + (ev.clientX - start.x) / viewScale);
+      d.y = Math.round(start.oy + (ev.clientY - start.y) / viewScale);
+      el.style.transform = decoTransform(d);
+      syncDecoInputs(k);
+    };
+    const end = () => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', end);
+      document.removeEventListener('pointercancel', end);
+      el.classList.remove('is-moving');
+      save();
+    };
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', end);
+    document.addEventListener('pointercancel', end);
+  });
 
   function highlightSelected() {
     $$('.b-card', board).forEach((el) => el.classList.toggle('is-selected', el.dataset.id === selectedId));
@@ -376,7 +439,7 @@
       </div>
       <button type="button" class="btn btn-red wide" data-act="cat-add">+ 카테고리 추가</button>`;
 
-    const opts = { animation: 150, ghostClass: 'ed-ghost', delayOnTouchOnly: true, delay: 150, onEnd: syncFromEditor };
+    const opts = { ...DRAG_OPTS, ghostClass: 'ed-ghost', delayOnTouchOnly: true, delay: 150, onEnd: syncFromEditor };
     Sortable.create($('.ed-cats', menuView), { ...opts, handle: '.cat-handle', draggable: '.ed-cat' });
     $$('.ed-cards', menuView).forEach((ul) => Sortable.create(ul, { ...opts, group: 'ed-cards', draggable: '.ed-card' }));
   }
@@ -432,12 +495,12 @@
         </div>
       </div>
       <div class="field">
-        <span class="label">카드 그림자 색</span>
+        <span class="label">카드 테마색 <span class="muted">외곽선·그림자·이름·키워드</span></span>
         <div class="swatches">
-          ${SHADOWS.map(([k, l]) => `
+          ${THEMES.map(([k, l]) => `
             <label class="swatch">
-              <input type="radio" name="fShadow" data-f="shadow" value="${k}"${(card.shadow || 'red') === k ? ' checked' : ''}>
-              <span class="chip chip-${k}"${k === 'none' ? '' : ` style="background:${state.settings.colors[k]}"`}></span>${l}
+              <input type="radio" name="fTheme" data-f="theme" value="${k}"${(card.theme || 'red') === k ? ' checked' : ''}>
+              <span class="chip" style="background:${state.settings.colors[k]}"></span>${l}
             </label>`).join('')}
         </div>
       </div>
@@ -632,13 +695,16 @@
         <h3>타이틀 & 문구</h3>
         <div class="field"><label for="sTitle">타이틀 <span class="muted">줄바꿈 가능</span></label><textarea id="sTitle" data-s="title" rows="2">${esc(s.title)}</textarea></div>
         <div class="field"><label>타이틀 크기 <span>${s.titleSize}px</span></label><input type="range" min="50" max="200" data-s="titleSize" value="${s.titleSize}"></div>
-        <div class="field"><label for="sSub">서브타이틀 (리본)</label><input id="sSub" data-s="subtitle" value="${esc(s.subtitle)}"></div>
-        <div class="field-2">
-          <div class="field"><label for="sStamp">원형 도장</label><textarea id="sStamp" data-s="stamp" rows="2">${esc(s.stamp)}</textarea></div>
-          <div class="field"><label for="sSticker">별 스티커</label><textarea id="sSticker" data-s="sticker" rows="2">${esc(s.sticker)}</textarea></div>
+        <div class="field"><label for="sFooter">푸터 <span class="muted">비우면 숨김</span></label><textarea id="sFooter" data-s="footer" rows="2">${esc(s.footer)}</textarea></div>
+      </section>
+
+      <section class="box">
+        <div class="box-head">
+          <h3>헤더 장식</h3>
+          <button type="button" class="btn btn-ghost btn-sm" data-act="deco-reset-all">전체 기본값</button>
         </div>
-        <div class="field"><label for="sFooter">푸터</label><textarea id="sFooter" data-s="footer" rows="2">${esc(s.footer)}</textarea></div>
-        <p class="muted">비워 두면 해당 장식은 숨겨져요.</p>
+        <p class="muted">프리뷰에서 장식을 직접 끌어서 옮길 수도 있어요. 문구를 비우면 숨겨져요.</p>
+        ${Object.keys(DECO_DEFAULTS).map((k) => decoFields(k)).join('')}
       </section>
 
       <section class="box">
@@ -674,6 +740,45 @@
       </section>`;
   }
 
+  const DECO_RANGES = {
+    scale: ['크기', 40, 250, 1, '%'],
+    rot:   ['회전', -180, 180, 1, '°'],
+    x:     ['가로 위치', -900, 900, 1, 'px'],
+    y:     ['세로 위치', -400, 800, 1, 'px'],
+  };
+  function decoFields(k) {
+    const s = state.settings;
+    const d = s.deco[k];
+    const text = k === 'subtitle'
+      ? `<input data-s="subtitle" value="${esc(s.subtitle)}" aria-label="${DECO_LABELS[k]} 문구">`
+      : `<textarea data-s="${k}" rows="2" aria-label="${DECO_LABELS[k]} 문구">${esc(s[k])}</textarea>`;
+    return `
+      <div class="deco" data-deco-box="${k}">
+        <div class="deco-head">
+          <b>${DECO_LABELS[k]}</b>
+          <button type="button" class="btn btn-ghost btn-sm" data-act="deco-reset" data-k="${k}">기본값</button>
+        </div>
+        ${text}
+        <div class="deco-grid">
+          ${Object.entries(DECO_RANGES).map(([dk, [label, min, max, step, unit]]) => `
+            <div class="field">
+              <label>${label} <span data-out="${k}-${dk}">${d[dk]}${unit}</span></label>
+              <input type="range" min="${min}" max="${max}" step="${step}" data-deco="${k}" data-dk="${dk}" value="${d[dk]}">
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }
+  /** 프리뷰에서 끌어 옮길 때 슬라이더 값도 따라 움직이게 */
+  function syncDecoInputs(k) {
+    const d = state.settings.deco[k];
+    for (const dk of ['x', 'y']) {
+      const inp = $(`input[data-deco="${k}"][data-dk="${dk}"]`, styleView);
+      if (inp) inp.value = d[dk];
+      const out = $(`[data-out="${k}-${dk}"]`, styleView);
+      if (out) out.textContent = `${d[dk]}px`;
+    }
+  }
+
   styleView.addEventListener('input', (e) => {
     const t = e.target;
     const s = state.settings;
@@ -687,6 +792,9 @@
         s[k] = +t.value;
         t.previousElementSibling.querySelector('span').textContent = k === 'grainAmount' ? `${t.value}%` : `${t.value}px`;
       } else s[k] = t.value;
+    } else if (t.dataset.dk) {
+      s.deco[t.dataset.deco][t.dataset.dk] = +t.value;
+      $(`[data-out="${t.dataset.deco}-${t.dataset.dk}"]`, styleView).textContent = `${t.value}${DECO_RANGES[t.dataset.dk][4]}`;
     } else if (t.dataset.lay) {
       s.layout[s.orientation][t.dataset.lay] = +t.value;
     } else if (t.dataset.color) {
@@ -701,6 +809,12 @@
     const segBtn = e.target.closest('[data-seg] button');
     if (segBtn) {
       state.settings.orientation = segBtn.dataset.v;
+      return changed({ style: true });
+    }
+    const reset = e.target.closest('[data-act="deco-reset"], [data-act="deco-reset-all"]');
+    if (reset) {
+      const keys = reset.dataset.k ? [reset.dataset.k] : Object.keys(DECO_DEFAULTS);
+      keys.forEach((k) => { state.settings.deco[k] = { ...DECO_DEFAULTS[k] }; });
       return changed({ style: true });
     }
     if (e.target.closest('[data-act="colors-reset"]')) {

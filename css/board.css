@@ -170,7 +170,6 @@
   font-size: 24px;
   line-height: 1.1;
   text-align: center;
-  transform: rotate(12deg);
   word-break: keep-all;
 }
 .b-stamp::before {
@@ -189,7 +188,6 @@
   left: 34px;
   width: 190px;
   height: 190px;
-  transform: rotate(-14deg);
   filter: drop-shadow(6px 6px 0 var(--soft));
 }
 .b-burst::before,
@@ -308,27 +306,30 @@
 
 /* ───────── 카드 ───────── */
 .b-card {
-  --cs: var(--red);             /* 카드 그림자 색 (카드별로 JS에서 지정) */
+  /* 카드 테마색: 외곽선·그림자·이름·가격·키워드·번호 도장이 모두 이 색을 따름 */
+  --tc: var(--red);
+  --tc-line: color-mix(in srgb, var(--tc) 90%, var(--ink));
+  --tc-soft: color-mix(in srgb, var(--tc) 50%, var(--cream));
   position: relative;
   display: flex;
   flex-direction: column;
   container-type: inline-size;
   background: var(--paper);
-  border: 3px solid var(--line);
+  border: 3px solid var(--tc-line);
   border-radius: 16px;
-  box-shadow: 8px 8px 0 var(--cs);
+  box-shadow: 8px 8px 0 var(--tc);
   cursor: grab;
 }
-.b-card.no-shadow { box-shadow: none; }
+.b-card.th-mint { --tc: var(--mint); }
 
 .b-card-img {
   position: relative;
   aspect-ratio: var(--img-ratio);
   overflow: hidden;
-  border-bottom: 3px solid var(--line);
+  border-bottom: 3px solid var(--tc-line);
   border-radius: 13px 13px 0 0;
   background:
-    repeating-conic-gradient(color-mix(in srgb, var(--red) 10%, var(--paper)) 0 25%, var(--paper) 0 50%) 0 0 / 30px 30px;
+    repeating-conic-gradient(color-mix(in srgb, var(--tc) 10%, var(--paper)) 0 25%, var(--paper) 0 50%) 0 0 / 30px 30px;
 }
 .b-card-img img {
   display: block;
@@ -341,7 +342,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  color: color-mix(in srgb, var(--red) 55%, var(--cream));
+  color: var(--tc-soft);
   font-family: var(--f-num);
   font-size: clamp(14px, 6cqi, 28px);
 }
@@ -357,7 +358,7 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--mint);
+  background: var(--tc);
   border: 3px solid var(--paper);
   box-shadow: 3px 3px 0 var(--soft);
   color: var(--cream);
@@ -374,7 +375,6 @@
   border: 1.5px dashed var(--cream);
   border-radius: 50%;
 }
-.b-card.cs-mint .b-no { background: var(--red); }
 
 .b-card-body {
   flex: 1;
@@ -391,7 +391,7 @@
 .b-card-name {
   margin: 0;
   min-width: 0;
-  color: var(--red);
+  color: var(--tc);
   font-family: var(--f-name);
   font-weight: 400;
   font-size: clamp(20px, 7.6cqi, 42px);
@@ -403,11 +403,11 @@
 .b-dots {
   flex: 1;
   min-width: 18px;
-  border-bottom: 3px dotted color-mix(in srgb, var(--red) 55%, var(--cream));
+  border-bottom: 3px dotted var(--tc-soft);
   transform: translateY(-.35em);
 }
 .b-price {
-  color: var(--mint);
+  color: var(--tc-line);
   font-family: var(--f-num);
   font-size: clamp(16px, 6cqi, 32px);
   white-space: nowrap;
@@ -430,7 +430,7 @@
 }
 .b-tags li {
   padding: 3px 14px 5px;
-  background: var(--red);
+  background: var(--tc);
   border-radius: 999px;
   color: var(--cream);
   font-family: var(--f-tag);
@@ -445,7 +445,7 @@
   aspect-ratio: auto;
   min-height: 240px;
   border-bottom: 0;
-  border-right: 3px solid var(--line);
+  border-right: 3px solid var(--tc-line);
   border-radius: 13px 0 0 13px;
 }
 .board[data-cardcols="1"] .b-card-name { font-size: clamp(20px, 4.6cqi, 44px); }
@@ -469,4 +469,17 @@
 /* ───────── 편집 상태 표시 (내보낼 땐 숨김) ───────── */
 .b-card.is-selected { outline: 5px dashed var(--accent); outline-offset: 10px; }
 .board.is-exporting .b-card.is-selected { outline: none; }
-.b-ghost { opacity: .35; }
+
+/* 헤더 장식: 프리뷰에서 끌어서 이동 */
+.b-header [data-deco] { cursor: move; touch-action: none; user-select: none; }
+.b-header [data-deco].is-moving { z-index: 5; }
+
+/* 카드 드래그: 끌고 가는 복제본은 불투명하게, 원래 자리는 점선 자리표시 */
+.is-drag-clone { opacity: 1 !important; cursor: grabbing; }
+.b-ghost.b-card, .b-ghost.b-cat {
+  background: transparent;
+  border: 3px dashed var(--tc-soft, var(--soft));
+  box-shadow: none;
+}
+.b-ghost.b-cat { border-radius: 16px; }
+.b-ghost > * { visibility: hidden; }
