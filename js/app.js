@@ -33,6 +33,22 @@
   }
   document.documentElement.style.setProperty('--burst', burstPolygon());
 
+  /** 필름 그레인용 노이즈 텍스처 (캔버스로 한 번 생성해 dataURL로 사용 → 내보내기에도 그대로 찍힘) */
+  function grainTexture(size = 180) {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(size, size);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = Math.random() * 255;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+      img.data[i + 3] = 46;
+    }
+    ctx.putImageData(img, 0, 0);
+    return `url(${c.toDataURL('image/png')})`;
+  }
+  document.documentElement.style.setProperty('--grain', grainTexture());
+
   let toastTimer;
   function toast(msg) {
     const t = $('#toast');
@@ -45,10 +61,11 @@
   /* ================= 상태 ================= */
   const DEFAULT_COLORS = { red: '#BA2B31', cream: '#F6F2E6', mint: '#0E857F', ink: '#2A1A17', accent: '#E9A23B' };
   const COLOR_LABELS = { red: '레드', cream: '배경', mint: '민트', ink: '잉크', accent: '포인트' };
+  const SHADOWS = [['red', '레드'], ['mint', '민트'], ['accent', '포인트'], ['none', '없음']];
 
   const newCard = (o = {}) => ({
     id: uid(), name: '', desc: '', price: '', keywords: ['', '', ''],
-    image: '', posX: 50, posY: 50, zoom: 1, ...o,
+    image: '', posX: 50, posY: 50, zoom: 1, shadow: 'red', ...o,
   });
 
   function defaultState() {
@@ -68,6 +85,8 @@
         },
         imgRatio: '4 / 3',
         showNumbers: true,
+        grain: true,
+        grainAmount: 35,
         colors: { ...DEFAULT_COLORS },
       },
       categories: [
@@ -75,14 +94,14 @@
           id: uid(), name: 'Main Pairs', tagline: "Chef's special!",
           cards: [
             newCard({ name: '캐릭터A × 캐릭터B', desc: '여기에 페어 설명을 적어주세요.\n줄바꿈도 가능해요.', price: '3.18', keywords: ['소꿉친구', '쌍방', '혐관'] }),
-            newCard({ name: '캐릭터C × 캐릭터D', desc: '카드를 클릭하면 오른쪽에서 편집할 수 있어요.', price: '12.25', keywords: ['선후배', '구원', ''] }),
+            newCard({ name: '캐릭터C × 캐릭터D', desc: '카드를 클릭하면 오른쪽에서 편집할 수 있어요.', price: '12.25', keywords: ['선후배', '구원', ''], shadow: 'mint' }),
           ],
         },
         {
           id: uid(), name: 'Side Pairs', tagline: '곁들이면 더 맛있는 사이드 메뉴',
           cards: [
             newCard({ name: '캐릭터E × 캐릭터F', desc: '가격(성사일)은 비워 두면 표시되지 않아요.', keywords: ['동거', '', ''] }),
-            newCard({ name: '캐릭터G × 캐릭터H', desc: '카드를 끌어서 순서나 카테고리를 바꿔 보세요.', price: '7.7', keywords: ['계약연애', '', ''] }),
+            newCard({ name: '캐릭터G × 캐릭터H', desc: '카드를 끌어서 순서나 카테고리를 바꿔 보세요.', price: '7.7', keywords: ['계약연애', '', ''], shadow: 'mint' }),
           ],
         },
       ],
@@ -188,8 +207,11 @@
     const kws = (card.keywords || []).map((k) => k.trim()).filter(Boolean).slice(0, 3);
     const imgStyle = `object-position:${card.posX}% ${card.posY}%;` +
       (card.zoom > 1 ? `transform:scale(${card.zoom});transform-origin:${card.posX}% ${card.posY}%;` : '');
+    const sh = SHADOWS.some(([k]) => k === card.shadow) ? card.shadow : 'red';
+    const shClass = sh === 'none' ? ' no-shadow' : ` cs-${sh}`;
+    const shStyle = sh === 'none' ? '' : ` style="--cs:var(--${sh})"`;
     return `
-      <article class="b-card${card.id === selectedId ? ' is-selected' : ''}" data-id="${card.id}">
+      <article class="b-card${shClass}${card.id === selectedId ? ' is-selected' : ''}" data-id="${card.id}"${shStyle}>
         ${s.showNumbers ? `<div class="b-no"><span>No.<br>${String(n).padStart(2, '0')}</span></div>` : ''}
         <div class="b-card-img">
           ${card.image ? `<img src="${card.image}" alt="" draggable="false" style="${imgStyle}">` : '<div class="b-noimg">NO IMAGE</div>'}
@@ -215,6 +237,7 @@
     board.style.setProperty('--card-cols', lay.cardCols);
     board.style.setProperty('--img-ratio', s.imgRatio);
     board.style.setProperty('--title-size', `${s.titleSize}px`);
+    board.style.setProperty('--grain-opacity', s.grainAmount / 100);
 
     let n = 0;
     board.innerHTML = `
@@ -239,7 +262,8 @@
             </section>`).join('')}
         </main>
         ${s.footer ? `<div class="b-strip"></div><footer class="b-footer">${nl(s.footer)}</footer>` : ''}
-      </div>`;
+      </div>
+      ${s.grain ? '<div class="b-grain"></div>' : ''}`;
 
     bindBoardSortable();
     syncOrientButtons();
@@ -405,6 +429,16 @@
         <span class="label">키워드 <span class="muted">최대 3개</span></span>
         <div class="kw-row">
           ${[0, 1, 2].map((i) => `<input data-kw="${i}" value="${esc(card.keywords[i])}" placeholder="키워드${i + 1}" maxlength="20" aria-label="키워드 ${i + 1}">`).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <span class="label">카드 그림자 색</span>
+        <div class="swatches">
+          ${SHADOWS.map(([k, l]) => `
+            <label class="swatch">
+              <input type="radio" name="fShadow" data-f="shadow" value="${k}"${(card.shadow || 'red') === k ? ' checked' : ''}>
+              <span class="chip chip-${k}"${k === 'none' ? '' : ` style="background:${state.settings.colors[k]}"`}></span>${l}
+            </label>`).join('')}
         </div>
       </div>
       <div class="field">
@@ -626,6 +660,12 @@
       </section>
 
       <section class="box">
+        <h3>질감</h3>
+        <label class="check"><input type="checkbox" data-s="grain" ${s.grain ? 'checked' : ''}> 필름 그레인</label>
+        <div class="field" style="margin:10px 0 0"><label>그레인 강도 <span>${s.grainAmount}%</span></label><input type="range" min="5" max="100" data-s="grainAmount" value="${s.grainAmount}"${s.grain ? '' : ' disabled'}></div>
+      </section>
+
+      <section class="box">
         <h3>색상</h3>
         <div class="colors">
           ${Object.keys(DEFAULT_COLORS).map((k) => `<label><input type="color" data-color="${k}" value="${s.colors[k]}">${COLOR_LABELS[k]}</label>`).join('')}
@@ -639,10 +679,13 @@
     const s = state.settings;
     if (t.dataset.s) {
       const k = t.dataset.s;
-      if (t.type === 'checkbox') s[k] = t.checked;
+      if (t.type === 'checkbox') {
+        s[k] = t.checked;
+        if (k === 'grain') $('[data-s="grainAmount"]', styleView).disabled = !t.checked;
+      }
       else if (t.type === 'range') {
         s[k] = +t.value;
-        t.previousElementSibling.querySelector('span').textContent = `${t.value}px`;
+        t.previousElementSibling.querySelector('span').textContent = k === 'grainAmount' ? `${t.value}%` : `${t.value}px`;
       } else s[k] = t.value;
     } else if (t.dataset.lay) {
       s.layout[s.orientation][t.dataset.lay] = +t.value;

@@ -352,6 +352,25 @@ input[type="range"] { width: 100%; accent-color: var(--e-mint); }
   border-radius: 10px;
 }
 .img-tools .field { margin-bottom: 6px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.swatch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 6px;
+  border: 2px solid #cbbfa8;
+  border-radius: 999px;
+  background: var(--e-paper);
+  font-family: var(--e-head);
+  cursor: pointer;
+}
+.swatch input { position: absolute; opacity: 0; pointer-events: none; }
+.swatch:has(input:checked) { border-color: var(--e-ink); box-shadow: 2px 2px 0 var(--e-ink); }
+.swatch:has(input:focus-visible) { outline: 2px solid var(--e-mint); outline-offset: 2px; }
+.chip { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(0,0,0,.15); }
+.chip-none { background: repeating-linear-gradient(45deg, #fff 0 3px, #ddd 3px 6px); }
+
 .kw-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .form-actions { display: flex; gap: 8px; margin-top: 18px; }
 .form-actions .btn { flex: 1; }
