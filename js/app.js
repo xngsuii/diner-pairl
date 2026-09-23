@@ -686,29 +686,49 @@
   /* ================= 꾸미기 탭 ================= */
   const styleView = $('#styleView');
 
+  /* 꾸미기 탭 섹션 접기/펼치기 — 열린 섹션은 이 브라우저에만 기억 */
+  const FOLD_KEY = 'pair-diner:open-folds';
+  const openFolds = (() => {
+    try {
+      const v = JSON.parse(localStorage.getItem(FOLD_KEY));
+      if (Array.isArray(v)) return new Set(v);
+    } catch { /* 저장소 없음 */ }
+    return new Set(['text']);
+  })();
+  const fold = (id, title, body, cls = 'box fold') => `
+    <details class="${cls}" data-fold="${id}"${openFolds.has(id) ? ' open' : ''}>
+      <summary><h3>${title}</h3></summary>
+      <div class="fold-body">${body}</div>
+    </details>`;
+  styleView.addEventListener('toggle', (e) => {
+    const id = e.target.dataset?.fold;
+    if (!id) return;
+    if (e.target.open) openFolds.add(id); else openFolds.delete(id);
+    try { localStorage.setItem(FOLD_KEY, JSON.stringify([...openFolds])); } catch { /* 무시 */ }
+  }, true);
+
   function renderStyle() {
     const s = state.settings;
     const lay = s.layout[s.orientation];
     const opt = (vals, cur) => vals.map(([v, l]) => `<option value="${v}"${String(v) === String(cur) ? ' selected' : ''}>${l}</option>`).join('');
     styleView.innerHTML = `
-      <section class="box">
-        <h3>타이틀 & 문구</h3>
+      <div class="fold-tools">
+        <button type="button" class="btn btn-ghost btn-sm" data-act="fold-all" data-open="1">모두 펼치기</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="fold-all" data-open="">모두 접기</button>
+      </div>
+      ${fold('text', '타이틀 & 문구', `
         <div class="field"><label for="sTitle">타이틀 <span class="muted">줄바꿈 가능</span></label><textarea id="sTitle" data-s="title" rows="2">${esc(s.title)}</textarea></div>
         <div class="field"><label>타이틀 크기 <span>${s.titleSize}px</span></label><input type="range" min="50" max="200" data-s="titleSize" value="${s.titleSize}"></div>
-        <div class="field"><label for="sFooter">푸터 <span class="muted">비우면 숨김</span></label><textarea id="sFooter" data-s="footer" rows="2">${esc(s.footer)}</textarea></div>
-      </section>
+        <div class="field"><label for="sFooter">푸터 <span class="muted">비우면 숨김</span></label><textarea id="sFooter" data-s="footer" rows="2">${esc(s.footer)}</textarea></div>`)}
 
-      <section class="box">
+      ${fold('deco', '헤더 장식', `
         <div class="box-head">
-          <h3>헤더 장식</h3>
+          <p class="muted" style="margin:0">프리뷰에서 장식을 직접 끌어서 옮길 수도 있어요. 문구를 비우면 숨겨져요.</p>
           <button type="button" class="btn btn-ghost btn-sm" data-act="deco-reset-all">전체 기본값</button>
         </div>
-        <p class="muted">프리뷰에서 장식을 직접 끌어서 옮길 수도 있어요. 문구를 비우면 숨겨져요.</p>
-        ${Object.keys(DECO_DEFAULTS).map((k) => decoFields(k)).join('')}
-      </section>
+        ${Object.keys(DECO_DEFAULTS).map((k) => decoFields(k)).join('')}`)}
 
-      <section class="box">
-        <h3>레이아웃</h3>
+      ${fold('layout', '레이아웃', `
         <div class="field">
           <span class="label">방향</span>
           <div class="seg" data-seg="orientation">
@@ -722,22 +742,17 @@
         </div>
         <p class="muted">열 설정은 세로/가로 버전에 각각 따로 저장돼요.</p>
         <div class="field"><label for="sRatio">이미지 비율</label><select id="sRatio" data-s="imgRatio">${opt([['1 / 1', '1:1 정사각'], ['4 / 3', '4:3'], ['3 / 4', '3:4 세로'], ['16 / 9', '16:9 와이드']], s.imgRatio)}</select></div>
-        <label class="check"><input type="checkbox" data-s="showNumbers" ${s.showNumbers ? 'checked' : ''}> 카드 번호 도장 표시</label>
-      </section>
+        <label class="check"><input type="checkbox" data-s="showNumbers" ${s.showNumbers ? 'checked' : ''}> 카드 번호 도장 표시</label>`)}
 
-      <section class="box">
-        <h3>질감</h3>
+      ${fold('texture', '질감', `
         <label class="check"><input type="checkbox" data-s="grain" ${s.grain ? 'checked' : ''}> 필름 그레인</label>
-        <div class="field" style="margin:10px 0 0"><label>그레인 강도 <span>${s.grainAmount}%</span></label><input type="range" min="5" max="100" data-s="grainAmount" value="${s.grainAmount}"${s.grain ? '' : ' disabled'}></div>
-      </section>
+        <div class="field" style="margin:10px 0 0"><label>그레인 강도 <span>${s.grainAmount}%</span></label><input type="range" min="5" max="100" data-s="grainAmount" value="${s.grainAmount}"${s.grain ? '' : ' disabled'}></div>`)}
 
-      <section class="box">
-        <h3>색상</h3>
+      ${fold('colors', '색상', `
         <div class="colors">
           ${Object.keys(DEFAULT_COLORS).map((k) => `<label><input type="color" data-color="${k}" value="${s.colors[k]}">${COLOR_LABELS[k]}</label>`).join('')}
         </div>
-        <div class="row" style="margin-top:10px"><button type="button" class="btn btn-ghost" data-act="colors-reset">기본 색상으로</button></div>
-      </section>`;
+        <div class="row" style="margin-top:10px"><button type="button" class="btn btn-ghost" data-act="colors-reset">기본 색상으로</button></div>`)}`;
   }
 
   const DECO_RANGES = {
@@ -752,10 +767,8 @@
     const text = k === 'subtitle'
       ? `<input data-s="subtitle" value="${esc(s.subtitle)}" aria-label="${DECO_LABELS[k]} 문구">`
       : `<textarea data-s="${k}" rows="2" aria-label="${DECO_LABELS[k]} 문구">${esc(s[k])}</textarea>`;
-    return `
-      <div class="deco" data-deco-box="${k}">
-        <div class="deco-head">
-          <b>${DECO_LABELS[k]}</b>
+    return fold(`deco-${k}`, DECO_LABELS[k], `
+        <div class="deco-tools">
           <button type="button" class="btn btn-ghost btn-sm" data-act="deco-reset" data-k="${k}">기본값</button>
         </div>
         ${text}
@@ -765,8 +778,7 @@
               <label>${label} <span data-out="${k}-${dk}">${d[dk]}${unit}</span></label>
               <input type="range" min="${min}" max="${max}" step="${step}" data-deco="${k}" data-dk="${dk}" value="${d[dk]}">
             </div>`).join('')}
-        </div>
-      </div>`;
+        </div>`, 'deco fold');
   }
   /** 프리뷰에서 끌어 옮길 때 슬라이더 값도 따라 움직이게 */
   function syncDecoInputs(k) {
@@ -810,6 +822,11 @@
     if (segBtn) {
       state.settings.orientation = segBtn.dataset.v;
       return changed({ style: true });
+    }
+    const foldAll = e.target.closest('[data-act="fold-all"]');
+    if (foldAll) {
+      $$('details[data-fold]', styleView).forEach((d) => { d.open = !!foldAll.dataset.open; });
+      return;
     }
     const reset = e.target.closest('[data-act="deco-reset"], [data-act="deco-reset-all"]');
     if (reset) {
