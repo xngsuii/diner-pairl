@@ -213,6 +213,27 @@
   word-break: keep-all;
 }
 
+/* 추가 스티커 (SVG) — 기본 위치. 크기·회전·이동은 JS에서 transform으로 */
+.b-sk { position: absolute; z-index: 3; line-height: 0; }
+.b-sk svg { display: block; overflow: visible; }
+.b-sk-seal    { left: 40px;  top: 214px; }
+.b-sk-ticket  { right: 30px; top: 246px; }
+.b-sk-tag     { right: 44px; top: 40px; }
+.b-sk-rosette { left: 60px;  top: 24px; }
+.b-sk-bubble  { right: 250px; top: 12px; }
+.b-sk .f-red    { fill: var(--red); }
+.b-sk .f-deep   { fill: var(--deep-red); }
+.b-sk .f-mint   { fill: var(--mint); }
+.b-sk .f-cream  { fill: var(--cream); }
+.b-sk .f-paper  { fill: var(--paper); }
+.b-sk .f-accent { fill: var(--accent); }
+.b-sk .f-ink    { fill: var(--ink); }
+.b-sk .s-red    { stroke: var(--red); }
+.b-sk .s-cream  { stroke: var(--cream); }
+.b-sk .s-ink    { stroke: var(--ink); }
+.b-sk .t-num    { font-family: var(--f-num); }
+.b-sk .t-disp   { font-family: var(--f-display); }
+
 /* 체커 띠 */
 .b-strip {
   height: 24px;

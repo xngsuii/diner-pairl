@@ -69,7 +69,24 @@
     stamp:    { x: 0, y: 0, scale: 100, rot: 12 },
     sticker:  { x: 0, y: 0, scale: 100, rot: -14 },
   };
-  const DECO_LABELS = { subtitle: '서브타이틀 리본', stamp: '원형 도장', sticker: '별 스티커' };
+  /** 추가 스티커 (SVG) — 켜고 끌 수 있고, 위치/크기/회전은 헤더 장식과 같은 방식으로 조절 */
+  const STICKERS = {
+    seal:    { label: '고무도장 씰', rot: -8, fields: [['ring', '둘레 문구', 'FRESHLY PAIRED ★ MADE WITH LOVE ★'], ['bottom', '아래 문구', 'EST. 2026']] },
+    ticket:  { label: '입장권 티켓', rot: -6, fields: [['top', '위 문구', 'ADMIT'], ['main', '큰 문구', 'TWO'], ['stub', '절취선 옆', 'No.0318']] },
+    tag:     { label: '가격표 태그', rot: 8,  fields: [['top', '위 문구', "TODAY'S"], ['main', '큰 문구', 'SPECIAL'], ['bottom', '아래 문구', 'ONLY $3.18']] },
+    rosette: { label: '로제트 배지', rot: -5, fields: [['top', '위 문구', 'BEST'], ['main', '큰 문구', 'PAIR'], ['bottom', '아래 문구', '★ No.1 ★']] },
+    bubble:  { label: '말풍선',      rot: -6, fields: [['top', '위 문구', "CHEF'S PICK"], ['main', '큰 문구', 'SHIP IT!']] },
+  };
+  const BASE_DECO = ['subtitle', 'stamp', 'sticker'];
+  const STICKER_KEYS = Object.keys(STICKERS);
+  for (const [k, v] of Object.entries(STICKERS)) DECO_DEFAULTS[k] = { x: 0, y: 0, scale: 100, rot: v.rot };
+  const stickerDefaults = () => Object.fromEntries(STICKER_KEYS.map((k) =>
+    [k, { on: false, ...Object.fromEntries(STICKERS[k].fields.map(([f, , d]) => [f, d])) }]));
+
+  const DECO_LABELS = {
+    subtitle: '서브타이틀 리본', stamp: '원형 도장', sticker: '별 스티커',
+    ...Object.fromEntries(STICKER_KEYS.map((k) => [k, STICKERS[k].label])),
+  };
   const decoTransform = (d) => `translate(${d.x}px, ${d.y}px) rotate(${d.rot}deg) scale(${d.scale / 100})`;
 
   const newCard = (o = {}) => ({
@@ -97,6 +114,7 @@
         grain: true,
         grainAmount: 35,
         deco: clone(DECO_DEFAULTS),
+        stickers: stickerDefaults(),
         colors: { ...DEFAULT_COLORS },
       },
       categories: [
@@ -127,6 +145,8 @@
       landscape: { ...d.settings.layout.landscape, ...(raw.settings?.layout?.landscape || {}) },
     };
     s.colors = { ...DEFAULT_COLORS, ...(raw.settings?.colors || {}) };
+    const sd = stickerDefaults();
+    s.stickers = Object.fromEntries(STICKER_KEYS.map((k) => [k, { ...sd[k], ...(raw.settings?.stickers?.[k] || {}) }]));
     s.deco = Object.fromEntries(Object.keys(DECO_DEFAULTS).map((k) =>
       [k, { ...DECO_DEFAULTS[k], ...(raw.settings?.deco?.[k] || {}) }]));
     const categories = (Array.isArray(raw.categories) ? raw.categories : []).map((c) => ({
@@ -239,6 +259,74 @@
       </article>`;
   }
 
+  /** 스티커 SVG. 색·폰트는 board.css의 .f-* / .s-* / .t-* 클래스로 → 색상 설정을 그대로 따름 */
+  function stickerHTML(k) {
+    const t = state.settings.stickers[k];
+    const e = (f) => esc(t[f]);
+    const svg = {
+      seal: `<svg viewBox="0 0 200 200" width="180" height="180"><g opacity=".93">
+        <circle cx="100" cy="100" r="88" fill="none" class="s-red" stroke-width="5"/>
+        <circle cx="100" cy="100" r="80" fill="none" class="s-red" stroke-width="1.5"/>
+        <circle cx="100" cy="100" r="54" fill="none" class="s-red" stroke-width="2.5"/>
+        <path id="sk-seal-ring" d="M100,100 m-67,0 a67,67 0 1,1 134,0 a67,67 0 1,1 -134,0" fill="none"/>
+        <text class="t-num f-red" font-size="14.5"><textPath href="#sk-seal-ring" textLength="415" lengthAdjust="spacing">${e('ring')}</textPath></text>
+        <path class="f-red" d="M100 118 C74 100 76 78 90 78 C96 78 100 83 100 87 C100 83 104 78 110 78 C124 78 126 100 100 118Z"/>
+        <text x="100" y="138" text-anchor="middle" class="t-num f-red" font-size="11" data-max="84">${e('bottom')}</text>
+      </g></svg>`,
+      ticket: `<svg viewBox="0 40 220 120" width="210" height="115">
+        <path class="f-mint" d="M10 45 H210 V88 A12 12 0 0 0 210 112 V155 H10 V112 A12 12 0 0 0 10 88 Z"/>
+        <rect x="20" y="55" width="180" height="90" rx="4" fill="none" class="s-cream" stroke-width="2" stroke-dasharray="5 4"/>
+        <line x1="158" y1="50" x2="158" y2="150" class="s-cream" stroke-width="2.5" stroke-dasharray="3 5"/>
+        <text x="89" y="86" text-anchor="middle" class="t-num f-cream" font-size="15" letter-spacing="3" data-max="118">${e('top')}</text>
+        <text x="89" y="130" text-anchor="middle" class="t-disp f-cream" font-size="44" data-max="118">${e('main')}</text>
+        <text x="180" y="100" text-anchor="middle" class="t-num f-cream" font-size="11" transform="rotate(90 180 100)" data-max="84">${e('stub')}</text>
+      </svg>`,
+      tag: `<svg viewBox="-2 26 216 134" width="200" height="124">
+        <path class="f-red s-red" stroke-width="4" stroke-linejoin="round" d="M46 44 H210 V156 H46 L8 100 Z"/>
+        <path class="f-accent" d="M54 58 H196 V142 H54 L28 100 Z"/>
+        <path fill="none" class="s-cream" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round" d="M49 51 H203 V149 H49 L18 100 Z"/>
+        <circle cx="36" cy="100" r="7" class="f-cream"/>
+        <path fill="none" class="s-ink" stroke-width="2" d="M36 100 C28 80 18 60 0 30"/>
+        <text x="123" y="80" text-anchor="middle" class="t-num f-red" font-size="13" letter-spacing="1" data-max="130">${e('top')}</text>
+        <text x="123" y="115" text-anchor="middle" class="t-disp f-red" font-size="34" data-max="130">${e('main')}</text>
+        <text x="123" y="130" text-anchor="middle" class="t-num f-ink" font-size="11" data-max="130">${e('bottom')}</text>
+      </svg>`,
+      rosette: `<svg viewBox="25 15 150 190" width="150" height="190">
+        <polygon class="f-deep" points="72,128 56,198 73,186 86,199 98,138"/>
+        <polygon class="f-red" points="128,128 144,198 127,186 114,199 102,138"/>
+        <g class="f-red">${[[160, 90], [155.4, 113], [142.4, 132.4], [123, 145.4], [100, 150], [77, 145.4], [57.6, 132.4], [44.6, 113], [40, 90], [44.6, 67], [57.6, 47.6], [77, 34.6], [100, 30], [123, 34.6], [142.4, 47.6], [155.4, 67]]
+          .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="13"/>`).join('')}<circle cx="100" cy="90" r="61"/></g>
+        <circle cx="100" cy="90" r="49" class="f-cream"/>
+        <circle cx="100" cy="90" r="43" fill="none" class="s-red" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="100" y="76" text-anchor="middle" class="t-num f-red" font-size="13" data-max="74">${e('top')}</text>
+        <text x="100" y="108" text-anchor="middle" class="t-disp f-red" font-size="32" data-max="80">${e('main')}</text>
+        <text x="100" y="124" text-anchor="middle" class="t-num f-mint" font-size="10" data-max="70">${e('bottom')}</text>
+      </svg>`,
+      bubble: `<svg viewBox="10 15 205 142" width="210" height="145">
+        <defs><pattern id="sk-bubble-dots" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="1.6" class="f-red" opacity=".22"/></pattern></defs>
+        <path transform="translate(7 7)" class="f-mint" d="${BUBBLE_PATH}"/>
+        <path class="f-paper s-red" stroke-width="4" stroke-linejoin="round" d="${BUBBLE_PATH}"/>
+        <path fill="url(#sk-bubble-dots)" d="${BUBBLE_PATH}"/>
+        <text x="110" y="52" text-anchor="middle" class="t-num f-mint" font-size="12" letter-spacing="2" data-max="165">${e('top')}</text>
+        <text x="110" y="97" text-anchor="middle" class="t-disp f-red" font-size="44" data-max="170">${e('main')}</text>
+      </svg>`,
+    }[k];
+    return `<div class="b-sk b-sk-${k}" data-deco="${k}" style="transform:${decoTransform(state.settings.deco[k])}">${svg}</div>`;
+  }
+  const BUBBLE_PATH = 'M30 20 H190 Q205 20 205 35 V100 Q205 115 190 115 H92 L58 150 L68 115 H30 Q15 115 15 100 V35 Q15 20 30 20 Z';
+
+  /** 스티커 문구가 자리보다 길면 SVG textLength로 가로를 눌러서 맞춤 */
+  function fitSvgText() {
+    $$('.b-sk text[data-max]', board).forEach((el) => {
+      el.removeAttribute('textLength');
+      const max = +el.dataset.max;
+      if (el.getComputedTextLength() > max) {
+        el.setAttribute('textLength', max);
+        el.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+      }
+    });
+  }
+
   function renderBoard() {
     const s = state.settings;
     const lay = s.layout[s.orientation];
@@ -257,6 +345,7 @@
         <header class="b-header">
           ${s.sticker ? `<div class="b-burst" data-deco="sticker" style="transform:${decoTransform(s.deco.sticker)}"><span>${nl(s.sticker)}</span></div>` : ''}
           ${s.stamp ? `<div class="b-stamp" data-deco="stamp" style="transform:${decoTransform(s.deco.stamp)}"><span>${nl(s.stamp)}</span></div>` : ''}
+          ${STICKER_KEYS.filter((k) => s.stickers[k].on).map((k) => stickerHTML(k)).join('')}
           <div class="b-plate"><h1 class="b-title">${nl(s.title) || '&nbsp;'}</h1></div>
           ${s.subtitle ? `<div><div class="b-ribbon" data-deco="subtitle" style="transform:${decoTransform(s.deco.subtitle)}"><span>${esc(s.subtitle)}</span></div></div>` : ''}
         </header>
@@ -277,6 +366,7 @@
       </div>
       ${s.grain ? '<div class="b-grain"></div>' : ''}`;
 
+    fitSvgText();
     bindBoardSortable();
     syncOrientButtons();
     fit();
@@ -724,9 +814,16 @@
       ${fold('deco', '헤더 장식', `
         <div class="box-head">
           <p class="muted" style="margin:0">프리뷰에서 장식을 직접 끌어서 옮길 수도 있어요. 문구를 비우면 숨겨져요.</p>
-          <button type="button" class="btn btn-ghost btn-sm" data-act="deco-reset-all">전체 기본값</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-act="deco-reset-all" data-keys="${BASE_DECO}">전체 기본값</button>
         </div>
-        ${Object.keys(DECO_DEFAULTS).map((k) => decoFields(k)).join('')}`)}
+        ${BASE_DECO.map((k) => decoFields(k)).join('')}`)}
+
+      ${fold('stickers', '추가 스티커', `
+        <div class="box-head">
+          <p class="muted" style="margin:0">켜 둔 스티커만 메뉴판에 나와요. 프리뷰에서 끌어서 옮길 수 있어요.</p>
+          <button type="button" class="btn btn-ghost btn-sm" data-act="deco-reset-all" data-keys="${STICKER_KEYS}">전체 기본값</button>
+        </div>
+        ${STICKER_KEYS.map((k) => decoFields(k)).join('')}`)}
 
       ${fold('layout', '레이아웃', `
         <div class="field">
@@ -764,9 +861,14 @@
   function decoFields(k) {
     const s = state.settings;
     const d = s.deco[k];
-    const text = k === 'subtitle'
-      ? `<input data-s="subtitle" value="${esc(s.subtitle)}" aria-label="${DECO_LABELS[k]} 문구">`
-      : `<textarea data-s="${k}" rows="2" aria-label="${DECO_LABELS[k]} 문구">${esc(s[k])}</textarea>`;
+    const sk = STICKERS[k];
+    const text = sk
+      ? `<label class="check" style="margin-bottom:8px"><input type="checkbox" data-sk="${k}" data-skf="on"${s.stickers[k].on ? ' checked' : ''}> 메뉴판에 표시</label>
+         ${sk.fields.map(([f, label]) => `
+           <div class="field"><label>${label}</label><input data-sk="${k}" data-skf="${f}" value="${esc(s.stickers[k][f])}"></div>`).join('')}`
+      : k === 'subtitle'
+        ? `<input data-s="subtitle" value="${esc(s.subtitle)}" aria-label="${DECO_LABELS[k]} 문구">`
+        : `<textarea data-s="${k}" rows="2" aria-label="${DECO_LABELS[k]} 문구">${esc(s[k])}</textarea>`;
     return fold(`deco-${k}`, DECO_LABELS[k], `
         <div class="deco-tools">
           <button type="button" class="btn btn-ghost btn-sm" data-act="deco-reset" data-k="${k}">기본값</button>
@@ -804,6 +906,9 @@
         s[k] = +t.value;
         t.previousElementSibling.querySelector('span').textContent = k === 'grainAmount' ? `${t.value}%` : `${t.value}px`;
       } else s[k] = t.value;
+    } else if (t.dataset.sk) {
+      const st = s.stickers[t.dataset.sk];
+      if (t.dataset.skf === 'on') st.on = t.checked; else st[t.dataset.skf] = t.value;
     } else if (t.dataset.dk) {
       s.deco[t.dataset.deco][t.dataset.dk] = +t.value;
       $(`[data-out="${t.dataset.deco}-${t.dataset.dk}"]`, styleView).textContent = `${t.value}${DECO_RANGES[t.dataset.dk][4]}`;
@@ -830,7 +935,7 @@
     }
     const reset = e.target.closest('[data-act="deco-reset"], [data-act="deco-reset-all"]');
     if (reset) {
-      const keys = reset.dataset.k ? [reset.dataset.k] : Object.keys(DECO_DEFAULTS);
+      const keys = reset.dataset.k ? [reset.dataset.k] : reset.dataset.keys.split(',');
       keys.forEach((k) => { state.settings.deco[k] = { ...DECO_DEFAULTS[k] }; });
       return changed({ style: true });
     }
@@ -963,6 +1068,6 @@
     renderBoard();
     renderMenu();
     renderStyle();
-    document.fonts.ready.then(fit);
+    document.fonts.ready.then(() => { fitSvgText(); fit(); });
   })();
 })();
