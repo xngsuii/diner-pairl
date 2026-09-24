@@ -813,17 +813,10 @@
 
       ${fold('deco', '헤더 장식', `
         <div class="box-head">
-          <p class="muted" style="margin:0">프리뷰에서 장식을 직접 끌어서 옮길 수도 있어요. 문구를 비우면 숨겨져요.</p>
-          <button type="button" class="btn btn-ghost btn-sm" data-act="deco-reset-all" data-keys="${BASE_DECO}">전체 기본값</button>
+          <p class="muted" style="margin:0">프리뷰에서 장식을 직접 끌어서 옮길 수도 있어요. 리본·도장·별 스티커는 문구를 비우면 숨겨지고, 나머지는 '메뉴판에 표시'를 켜야 나와요.</p>
+          <button type="button" class="btn btn-ghost btn-sm" data-act="deco-reset-all" data-keys="${[...BASE_DECO, ...STICKER_KEYS]}">전체 기본값</button>
         </div>
-        ${BASE_DECO.map((k) => decoFields(k)).join('')}`)}
-
-      ${fold('stickers', '추가 스티커', `
-        <div class="box-head">
-          <p class="muted" style="margin:0">켜 둔 스티커만 메뉴판에 나와요. 프리뷰에서 끌어서 옮길 수 있어요.</p>
-          <button type="button" class="btn btn-ghost btn-sm" data-act="deco-reset-all" data-keys="${STICKER_KEYS}">전체 기본값</button>
-        </div>
-        ${STICKER_KEYS.map((k) => decoFields(k)).join('')}`)}
+        ${[...BASE_DECO, ...STICKER_KEYS].map((k) => decoFields(k)).join('')}`)}
 
       ${fold('layout', '레이아웃', `
         <div class="field">
